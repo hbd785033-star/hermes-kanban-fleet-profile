@@ -1,0 +1,26 @@
+# Never publish local Hermes secrets/state
+.env
+auth.json
+state.db
+kanban.db
+*.sqlite
+*.sqlite3
+sessions/
+memory/
+memories/
+logs/
+cron/
+mcp/
+backups/
+state-snapshots/
+checkpoints/
+profile-home/
+profiles/*/.env
+profiles/*/auth.json
+profiles/*/state.db
+profiles/*/sessions/
+profiles/*/memory/
+profiles/*/memories/
+profiles/*/logs/
+profiles/*/cron/
+profiles/*/mcp/

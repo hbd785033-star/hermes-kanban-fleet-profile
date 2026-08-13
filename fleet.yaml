@@ -1,0 +1,28 @@
+schema: hermes-kanban-fleet/v1
+source_profile: default
+provider: CCSwitch
+model: gpt-5.6-sol
+terminal_home_mode: auto
+profiles:
+  orchestrator:
+    description: "Owns complex multi-stage Kanban tasks. Decomposes goals, creates and links tasks, routes work to specialist profiles, monitors dependencies and blockers, reviews completion evidence, and creates follow-up tasks when needed. Does not perform normal implementation work when a suitable specialist exists."
+    tools: [skills, todo, memory, session_search, clarify]
+  researcher:
+    description: "Research specialist for web research, documentation, GitHub repositories, source-code reading, technical comparison, evidence gathering, and architecture analysis. Produces sourced findings and clear handoffs. Does not perform large implementation changes."
+    tools: [web, browser, terminal, file, code_execution, vision, skills, todo, memory, session_search, clarify]
+  coder:
+    description: "Software implementation specialist for coding, debugging, refactoring, repository work, tests, linting, builds, and verified code changes. May delegate suitable implementation work to Codex or Claude Code when available, but remains responsible for verification evidence."
+    tools: [web, browser, terminal, file, code_execution, vision, skills, todo, memory, session_search, clarify]
+  reviewer:
+    description: "Independent reviewer for code review, architecture review, security review, Git diffs, tests, acceptance criteria, regressions, and evidence verification. Reports blockers and severity clearly. Defaults to review-only and should not silently fix the implementation it is judging."
+    tools: [terminal, file, code_execution, skills, todo, memory, session_search, clarify]
+kanban:
+  auto_decompose: true
+  orchestrator_profile: orchestrator
+  default_assignee: default
+  dispatch_in_gateway: true
+  review_dispatch: true
+auxiliary:
+  kanban_decomposer:
+    provider: CCSwitch
+    model: gpt-5.6-sol
