@@ -45,7 +45,9 @@ Keep raw evidence in Git, test output, workspaces, artifacts, attachments, or Ka
 
 A comment adds new information only. Do not repeat task history, prior comments, full diffs/logs, unchanged blockers, or narrative heartbeats. Use native heartbeat signals for long work, not LLM prose.
 
-## Lifecycle and retry
+## Review model and lifecycle
+
+Use the native review model encoded by the task graph. The default Fleet code-review strategy is same-card review: inspect `kanban_show()`; when no pre-created downstream review/QA/release child exists and the same task needs review, call `kanban_request_review`, then let the Reviewer call `kanban_complete` or `kanban_request_changes`. When a pre-created downstream review/QA/release child exists, complete the implementation task with its structured handoff and do not also request same-card review. Separate children are for genuinely separate deliverables such as security audit, QA, release validation, or architecture review.
 
 Dependencies use links and `todo` -> `ready` promotion; do not block or poll. Engineering failures are repaired autonomously when new evidence exists. Native provider cooldown/requeue handling comes first. If Fleet-level handling is still required, retry the same unchanged external failure at most once, then record compact evidence and stop/requeue without helper fan-out.
 

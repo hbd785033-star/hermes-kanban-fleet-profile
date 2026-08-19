@@ -40,8 +40,8 @@ kanban:
 1. Orchestrator creates one necessary explicit DAG with thin task packets.
 2. Dispatcher owns dependency promotion, worker spawning, run lifecycle, and review-lane fairness.
 3. Orchestrator stops active polling and re-enters only on meaningful events.
-4. Coder implements, verifies, and calls native `kanban_request_review` with compact evidence.
-5. Reviewer independently passes/completes or calls `kanban_request_changes`; review never consumes blocker recurrence accounting.
+4. Coder inspects the task graph before terminating. The default code-review strategy is same-card review: with no pre-created downstream review/QA/release child, the Coder calls native `kanban_request_review` with compact evidence. When such a child exists, the Coder calls `kanban_complete` and does not also request same-card review.
+5. Reviewer independently passes/completes or calls `kanban_request_changes`; review never consumes blocker recurrence accounting. Separate review children are reserved for genuinely separate security, QA, release, or architecture deliverables.
 6. Engineering problems are repaired autonomously. Human interruption is reserved for genuine owner input or access/authorization.
 7. Comments are delta-only; handoffs reference raw evidence instead of copying it.
 
