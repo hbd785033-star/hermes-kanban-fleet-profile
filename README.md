@@ -1,84 +1,78 @@
-# Hermes Kanban Fleet Profile
+# Hermes Kanban Fleet Profile — V2.1
 
-Minimal Hermes native multi-agent profile fleet for Kanban routing.
+Practical, native Hermes multi-agent orchestration: explicit DAGs, bounded concurrency, first-class review, event-driven control, human-actionable blockers, and compact durable context.
 
-This repository is a non-secret template for recreating a small Hermes execution team:
+The Fleet preserves the `orchestrator`, `researcher`, `coder`, `reviewer`, and `default` fallback; useful parallel research; durable Kanban; Git worktrees; independent review; deterministic testing; and real E2E where appropriate. It removes structurally wasteful work rather than useful verification.
 
-- `default` - unchanged fallback/generalist profile
-- `orchestrator` - owns decomposition, routing, dependencies, blockers, and completion judgement
-- `researcher` - gathers evidence from docs, web, GitHub, and source code
-- `coder` - implements, debugs, tests, lints, builds, and verifies code changes
-- `reviewer` - independently reviews diffs, evidence, risk, regressions, and acceptance criteria
+## Runtime baseline
 
-## What This Repo Contains
+Validated against installed Hermes Agent v0.20.4 (2026.8.18). V2.1 reuses installed native machinery instead of rebuilding it:
 
-- Profile descriptions used by Hermes Kanban decomposer routing
-- Role SOUL append snippets
-- A reproducible apply script using supported `hermes` CLI commands
-- Non-sensitive Kanban routing settings
+- gateway dispatcher and dependency promotion
+- `kanban.max_in_progress` (host-level cap)
+- memory-aware dispatch guard
+- review status, request-review/request-changes, and review-lane reservation
+- typed blockers and provider rate-limit cooldown/requeue
+- native Kanban terminal notifications
+- live comments to running workers when available
+- safe worktree cleanup
 
-## What This Repo Does Not Contain
+No Hermes upgrade is performed by this repository.
 
-This repository intentionally does **not** include:
+## Effective Fleet configuration
 
-- API keys or OAuth tokens
-- `.env`
-- `auth.json`
-- memories or sessions
-- state databases
-- Kanban task database
-- gateway tokens
-- cron jobs
-- MCP credentials
-- project repositories
-
-## Requirements
-
-- Hermes Agent v0.20.0 or compatible
-- A working `default` profile
-- A configured provider/model available to Hermes
-- Optional: Codex CLI on PATH for coder delegation
-- Optional: Claude Code CLI on PATH for coder delegation
-
-## Apply
-
-From a shell with Hermes available:
-
-```bash
-bash scripts/apply-fleet.sh
+```yaml
+kanban:
+  auto_decompose: false
+  orchestrator_profile: orchestrator
+  default_assignee: default
+  dispatch_in_gateway: true
+  review_dispatch: true
+  max_in_progress: 4
 ```
 
-The script defaults to:
+`auto_decompose: false` disables the auxiliary triage decomposer only. It does **not** disable dispatch: the Orchestrator creates and links the explicit DAG, and the gateway dispatcher automatically promotes and executes ready work.
 
-- provider: `CCSwitch`
-- model: `gpt-5.6-sol`
-- source profile: `default`
+`max_in_progress: 4` is an initial stability target, not cheap mode and not a permanent optimum. A later measured canary may compare 4 vs 6 without weakening independent review or useful parallelism.
 
-Override if needed:
+## Fleet protocol
 
-```bash
-HERMES_FLEET_PROVIDER='openai-codex' HERMES_FLEET_MODEL='gpt-5.6-sol' bash scripts/apply-fleet.sh
-```
+1. Orchestrator creates one necessary explicit DAG with thin task packets.
+2. Dispatcher owns dependency promotion, worker spawning, run lifecycle, and review-lane fairness.
+3. Orchestrator stops active polling and re-enters only on meaningful events.
+4. Coder inspects the task graph before terminating. The default code-review strategy is same-card review: with no pre-created downstream review/QA/release child, the Coder calls native `kanban_request_review` with compact evidence. When such a child exists, the Coder calls `kanban_complete` and does not also request same-card review.
+5. Reviewer independently passes/completes or calls `kanban_request_changes`; review never consumes blocker recurrence accounting. Separate review children are reserved for genuinely separate security, QA, release, or architecture deliverables.
+6. Engineering problems are repaired autonomously. Human interruption is reserved for genuine owner input or access/authorization.
+7. Comments are delta-only; handoffs reference raw evidence instead of copying it.
 
-## Verify
+See [`CONTEXT_PROTOCOL.md`](CONTEXT_PROTOCOL.md) for the thin packet, handoff budgets, blocker taxonomy, retry rule, and exact `HUMAN_DECISION_REQUIRED` payload.
 
-```bash
-hermes profile list
-hermes kanban assignees
-hermes config get kanban.auto_decompose
-hermes config get kanban.orchestrator_profile
-hermes config get kanban.default_assignee
-hermes config get kanban.dispatch_in_gateway
-hermes config get kanban.review_dispatch
+## Headless-worker clarify rule
 
-hermes -p orchestrator -z 'Reply exactly: OK_orchestrator'
-hermes -p researcher -z 'Reply exactly: OK_researcher'
-hermes -p coder -z 'Reply exactly: OK_coder'
-hermes -p reviewer -z 'Reply exactly: OK_reviewer'
-```
+Researcher, Coder, and Reviewer profiles do not expose the `clarify` toolset. The Orchestrator retains it for legitimate live interactive use, but must never call it when `HERMES_KANBAN_TASK` is set. A worker needing true human input comments compact context, blocks with the structured payload, and resumes in a fresh run after the answer is recorded durably.
 
-## Notes
+Batch clarify is present in the validated Hermes runtime but is not a V2.1 worker dependency. A future Phase 2 may evaluate a Human Decision Bridge: blocked worker -> structured payload -> live Orchestrator wake -> clarify/batch clarify -> durable answer comment -> human-origin unblock -> worker resumes.
 
-`terminal.home_mode` is left as `auto` so host-installed Hermes profiles keep using the real OS user HOME for external CLIs like `git`, `gh`, `ssh`, `npm`, Codex, and Claude Code.
+## Repository contents
 
-The Kanban toolset is dispatcher-gated in Hermes v0.20.0. Worker/orchestrator Kanban tools are injected when a task is spawned by the Kanban dispatcher; normal sessions do not carry the Kanban schema.
+- `fleet.yaml` — declarative Fleet profiles and Kanban policy
+- `profiles/*/SOUL.append.md` — concise role rules
+- `CONTEXT_PROTOCOL.md` — practical context and blocker contract
+- `scripts/apply-fleet.sh` — **historical V1 helper; unsafe for V2.1 and must not be executed**
+
+The historical script still encodes V1 auto-decomposition and specialist `clarify` exposure. V2.1 intentionally does not execute or treat it as an installer. Apply the reviewed declarative configuration through supported Hermes profile/config commands in a separately authorized activation checkpoint; do not overwrite the active Fleet during repository acceptance.
+
+## Static verification
+
+Validate before activation:
+
+- YAML parses with duplicate-key rejection.
+- Every profile referenced by `fleet.yaml` exists in the repository.
+- Config keys and review tools exist in the installed Hermes implementation.
+- Specialists exclude `clarify`; Orchestrator has the conditional headless rule.
+- No role creates polling/wait workers or treats review as a blocker.
+- Changed paths stay inside the V2.1 allowlist.
+
+## Secrets and state
+
+This repository contains no API keys, OAuth tokens, `.env`, `auth.json`, memories, sessions, state databases, Kanban task databases, gateway tokens, cron jobs, MCP credentials, or project repositories. `terminal_home_mode: auto` preserves the real OS home for host CLIs.

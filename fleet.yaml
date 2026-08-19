@@ -5,24 +5,21 @@ model: gpt-5.6-sol
 terminal_home_mode: auto
 profiles:
   orchestrator:
-    description: "Owns complex multi-stage Kanban tasks. Decomposes goals, creates and links tasks, routes work to specialist profiles, monitors dependencies and blockers, reviews completion evidence, and creates follow-up tasks when needed. Does not perform normal implementation work when a suitable specialist exists."
+    description: "Owns explicit Kanban DAGs, dependency links, specialist routing, and evidence-based completion. Runs event-driven without duplicate decomposition or polling workers."
     tools: [skills, todo, memory, session_search, clarify]
   researcher:
-    description: "Research specialist for web research, documentation, GitHub repositories, source-code reading, technical comparison, evidence gathering, and architecture analysis. Produces sourced findings and clear handoffs. Does not perform large implementation changes."
-    tools: [web, browser, terminal, file, code_execution, vision, skills, todo, memory, session_search, clarify]
+    description: "Evidence and research specialist. Produces bounded findings with source and artifact pointers; avoids raw dumps and large implementation unless explicitly scoped."
+    tools: [web, browser, terminal, file, code_execution, vision, skills, todo, memory, session_search]
   coder:
-    description: "Software implementation specialist for coding, debugging, refactoring, repository work, tests, linting, builds, and verified code changes. May delegate suitable implementation work to Codex or Claude Code when available, but remains responsible for verification evidence."
-    tools: [web, browser, terminal, file, code_execution, vision, skills, todo, memory, session_search, clarify]
+    description: "Implementation specialist. Performs deterministic verification, repairs engineering defects, and hands completed work to native Kanban review with compact evidence."
+    tools: [web, browser, terminal, file, code_execution, vision, skills, todo, memory, session_search]
   reviewer:
-    description: "Independent reviewer for code review, architecture review, security review, Git diffs, tests, acceptance criteria, regressions, and evidence verification. Reports blockers and severity clearly. Defaults to review-only and should not silently fix the implementation it is judging."
-    tools: [terminal, file, code_execution, skills, todo, memory, session_search, clarify]
+    description: "Independent review specialist. Classifies P0/P1/P2 findings, verifies evidence, requests native changes when required, and does not silently fix reviewed work."
+    tools: [terminal, file, code_execution, skills, todo, memory, session_search]
 kanban:
-  auto_decompose: true
+  auto_decompose: false
   orchestrator_profile: orchestrator
   default_assignee: default
   dispatch_in_gateway: true
   review_dispatch: true
-auxiliary:
-  kanban_decomposer:
-    provider: CCSwitch
-    model: gpt-5.6-sol
+  max_in_progress: 4
