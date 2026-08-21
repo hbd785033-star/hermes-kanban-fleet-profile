@@ -73,6 +73,72 @@ Validate before activation:
 - No role creates polling/wait workers or treats review as a blocker.
 - Changed paths stay inside the V2.1 allowlist.
 
+## Portable Serena MCP setup for Windows
+
+[`scripts/setup-serena-mcp.ps1`](scripts/setup-serena-mcp.ps1) configures Serena as a lifecycle-managed stdio MCP server for the Hermes `default` Profile. It is separate from the disabled historical Fleet installer and does not modify Fleet policy or specialist Profiles.
+
+### Purpose and routing
+
+The token-safe navigation path remains intentionally selective:
+
+```text
+Hermes Native Tools
+  -> Serena when semantic cross-file navigation is useful
+  -> Repomix only when repository scope remains broad or unknown
+```
+
+Serena is an optional semantic escalation, not a dependency for every task. Repomix is not an automatic fallback merely because Serena is unavailable.
+
+### Architecture and profile scope
+
+- **Transport:** stdio. Hermes starts and stops Serena with the MCP session.
+- **Why not persistent HTTP:** current single-agent usage does not justify a manually maintained server on port 9121. Stdio avoids forgotten background servers and keeps project lifecycles isolated.
+- **Project selection:** `--project-from-cwd` activates the nearest Git or Serena project boundary.
+- **Profiles:** Serena is enabled only for `default`. It remains absent from `orchestrator`, `researcher`, `coder`, and `reviewer`.
+
+The script discovers the machine-local Serena executable instead of publishing a user-specific path. It checks `PATH`, the current `uv tool` executable directory, and the current user's supported local tool location. It also inspects `uv`, `uvx`, and `uv tool list`, then validates the installed Serena CLI contract before touching Hermes. The validated work-PC distribution identity is `serena-agent` (`uv tool list`: Serena 1.7.0); the executable path remains machine-local.
+
+If Serena is absent, the script exits with `SERENA_NOT_INSTALLED` and does not install anything. Install it explicitly, then rerun the setup:
+
+```powershell
+uv tool install serena-agent
+```
+
+An HTTP-only Serena entry is the deterministic legacy case: the script backs up the active default Profile config and replaces only that entry with stdio. Any unexpected or conflicting Serena entry reports `SERENA_CONFIG_CONFLICT` and is preserved. A conflicting stdio entry can be replaced only after explicit review:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup-serena-mcp.ps1 -ReplaceExisting
+```
+
+`-ExecutionPolicy Bypass` applies only to that child PowerShell process; the script does not change machine or user execution-policy settings.
+
+A replacement backs up only the active default Profile's `config.yaml`. Other MCP servers, Profiles, credentials, approval settings, and Fleet configuration are left alone.
+
+### Work or home PC setup
+
+```powershell
+# 1. Clone once, or pull an existing checkout.
+git clone https://github.com/hbd785033-star/hermes-kanban-fleet-profile.git
+cd hermes-kanban-fleet-profile
+# Existing checkout: git pull --ff-only
+
+# 2. Confirm compatible local tools.
+hermes --version
+Get-Command uv -ErrorAction SilentlyContinue
+Get-Command uvx -ErrorAction SilentlyContinue
+uv tool list
+serena --version
+
+# 3. Configure and test the default Profile.
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup-serena-mcp.ps1
+```
+
+Success ends with `MCP verification: PASS`. A correct rerun reports `ALREADY_CONFIGURED`, performs verification, and does not rewrite the config.
+
+For a local semantic smoke, create a disposable Git repository containing one small source file, start Hermes from that repository, and make exactly one read-only Serena `get_symbols_overview` call. Confirm the expected symbols, an empty tracked/staged diff, and no orphan Serena process. Serena may create untracked `.serena/` project metadata or symbol caches; report those separately from source changes.
+
+Publishing this repository does not repair another PC automatically. Each machine must clone or pull, install compatible local prerequisites explicitly, run the setup script, and perform its own MCP and semantic smoke. Machine-local executable paths are discovered and stored only in that machine's Hermes configuration.
+
 ## Secrets and state
 
 This repository contains no API keys, OAuth tokens, `.env`, `auth.json`, memories, sessions, state databases, Kanban task databases, gateway tokens, cron jobs, MCP credentials, or project repositories. `terminal_home_mode: auto` preserves the real OS home for host CLIs.
