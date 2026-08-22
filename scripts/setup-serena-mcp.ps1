@@ -216,7 +216,7 @@ if ($existingCommandPresent) {
     }
     $argsMatch = ($null -eq (Compare-Object -ReferenceObject $targetArgs -DifferenceObject $existingArgs -SyncWindow 0))
     $commandMatches = ($null -ne $resolvedExistingCommand -and $resolvedExistingCommand.Equals($serenaPath, [System.StringComparison]::OrdinalIgnoreCase))
-    $configurationMatches = ($commandMatches -and $argsMatch -and $timeoutParsed -and $existingTimeout -eq 30.0 -and $existingEnabled)
+    $configurationMatches = ($commandMatches -and $argsMatch -and $timeoutParsed -and $existingTimeout -eq 30.0 -and $existingEnabled -and -not $existingUrlPresent)
 
     if (-not $configurationMatches) {
         Write-Output "SERENA_CONFIG_CONFLICT"
